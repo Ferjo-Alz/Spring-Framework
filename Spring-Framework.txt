@@ -1,0 +1,134 @@
+// Topic.java
+public class Topic {
+    private Long id;
+    private String title;
+    private String message;
+    // ... getters y setters
+}
+
+// TopicDTO.java
+public class TopicDTO {
+    private Long id;
+    private String title;
+    private String message;
+    // ... constructor y getters
+}
+
+// TopicRequest.java
+public class TopicRequest {
+    private String title;
+    private String message;
+    // ... constructor y getters
+}
+
+// AuthRequest.java
+public class AuthRequest {
+    private String email;
+    private String password;
+    // ... constructor y getters
+}
+
+// TopicService.java
+public interface TopicService {
+    List<Topic> findAll();
+    Topic createTopic(TopicRequest topicRequest);
+    void deleteTopic(Long id);
+}
+
+// TopicServiceImpl.java
+public class TopicServiceImpl implements TopicService {
+
+    @Autowired
+    private TopicRepository topicRepository;
+
+    @Override
+    public List<Topic> findAll() {
+        return topicRepository.findAll();
+    }
+
+    @Override
+    public Topic createTopic(TopicRequest topicRequest) {
+        Topic topic = new Topic();
+        topic.setTitle(topicRequest.getTitle());
+        topic.setMessage(topicRequest.getMessage());
+        return topicRepository.save(topic);
+    }
+
+    @Override
+    public void deleteTopic(Long id) {
+        topicRepository.deleteById(id);
+    }
+}
+
+// AuthService.java
+public interface AuthService {
+    String authenticate(AuthRequest authRequest);
+}
+
+// AuthServiceImpl.java
+public class AuthServiceImpl implements AuthService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Override
+    public String authenticate(AuthRequest authRequest) {
+        User user = userRepository.findByEmailAndPassword(authRequest.getEmail(), authRequest.getPassword());
+        if (user != null) {
+            // Generar y devolver token JWT
+            return generateToken(user);
+        } else {
+            throw new AuthenticationException("Credenciales inválidas");
+        }
+    }
+
+    private String generateToken(User user) {
+        // Implementar la lógica para generar token JWT
+        return "token-jwt";
+    }
+}
+
+// TopicController.java
+@RestController
+@RequestMapping("/topics")
+public class TopicController {
+
+    @Autowired
+    private TopicService topicService;
+
+    @GetMapping
+    public ResponseEntity<List<TopicDTO>> getAllTopics() {
+        List<Topic> topics = topicService.findAll();
+        List<TopicDTO> topicDTOs = topics.stream()
+                .map(TopicDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(topicDTOs);
+    }
+
+    @PostMapping
+    public ResponseEntity<Long> createTopic(@RequestBody TopicRequest topicRequest) {
+        Topic topic = topicService.createTopic(topicRequest);
+        return ResponseEntity.ok(topic.getId());
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTopic(@PathVariable Long id) {
+        topicService.deleteTopic(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+
+// AuthController.java
+@RestController
+@RequestMapping("/auth")
+public class AuthController {
+
+    @Autowired
+    private AuthService authService;
+
+    @PostMapping
+    public ResponseEntity<String> authenticate(@RequestBody AuthRequest authRequest) {
+        String token = authService.authenticate(authRequest);
+        return ResponseEntity.ok(token);
+    }
+}
